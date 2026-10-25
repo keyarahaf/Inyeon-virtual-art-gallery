@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>인연 INYEON: Korean Life Cycle Art Gallery</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Google Fonts: Noto Serif KR & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+KR:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Three.js Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- GSAP for smooth camera animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+      background-color: #0d0d0e;
+      color: #e5e5e7;
+      user-select: none;
+    }
+    .font-serif-kr {
+      font-family: 'Noto Serif KR', serif;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(212, 175, 55, 0.3);
+      border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(212, 175, 55, 0.6);
+    }
+    .glass-panel {
+      background: rgba(18, 18, 20, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-button {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-button:hover {
+      background: rgba(212, 175, 55, 0.2);
+      border-color: rgba(212, 175, 55, 0.5);
+      color: #f3e5ab;
+      transform: translateY(-1px);
+    }
+    .glass-button.active {
+      background: rgba(212, 175, 55, 0.3);
+      border-color: #d4af37;
+      color: #ffffff;
+      box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+    }
+  </style>
+</head>
+<body class="w-screen h-screen m-0 p-0 overflow-hidden select-none">
+
+  <!-- 3D WebGL Canvas Container -->
+  <div id="canvas-container" class="w-full h-full absolute inset-0 z-0 cursor-grab active:cursor-grabbing"></div>
+
+  <!-- Top Navigation Header -->
+  <header class="absolute top-0 left-0 w-full p-4 md:p-6 z-10 flex flex-col md:flex-row justify-between items-center pointer-events-none gap-4">
+    <div class="pointer-events-auto flex items-center gap-3 glass-panel px-5 py-3 rounded-2xl shadow-2xl">
+      <div class="w-3 h-3 rounded-full bg-red-600 animate-pulse shadow-[0_0_10px_#dc2626]"></div>
+      <div>
+        <h1 class="font-serif-kr text-lg md:text-xl font-bold tracking-wider text-amber-100 flex items-center gap-2">
+          인연 <span class="text-xs text-amber-400 font-sans tracking-normal px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800/40">INYEON</span>
+        </h1>
+        <p class="text-xs text-stone-400">Korean Life Cycle Interactive Art Exhibition</p>
+      </div>
+    </div>
+
+    <!-- Navigation Pills for Life Stages -->
+    <nav class="pointer-events-auto glass-panel p-1.5 rounded-2xl flex items-center gap-1 overflow-x-auto max-w-full">
+      <button onclick="navigateToSection(0)" id="nav-btn-0" class="glass-button active px-3.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap flex items-center gap-1.5">
+        <i class="fa-solid fa-baby text-amber-400"></i> 01 Birth
+      </button>
+      <button onclick="navigateToSection(1)" id="nav-btn-1" class="glass-button px-3.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap flex items-center gap-1.5">
+        <i class="fa-solid fa-user-graduate text-amber-400"></i> 02 Coming of Age
+      </button>
+      <button onclick="navigateToSection(2)" id="nav-btn-2" class="glass-button px-3.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap flex items-center gap-1.5">
+        <i class="fa-solid fa-heart text-amber-400"></i> 03 Marriage
+      </button>
+      <button onclick="navigateToSection(3)" id="nav-btn-3" class="glass-button px-3.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap flex items-center gap-1.5">
+        <i class="fa-solid fa-tree text-amber-400"></i> 04 Longevity & 60th
+      </button>
+      <button onclick="navigateToSection(4)" id="nav-btn-4" class="glass-button px-3.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap flex items-center gap-1.5">
+        <i class="fa-solid fa-monument text-amber-400"></i> 05 Funerals & Rites
+      </button>
+      <button onclick="navigateToSection(5)" id="nav-btn-5" class="glass-button px-3.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap flex items-center gap-1.5">
+        <i class="fa-solid fa-scroll text-amber-400"></i> 06 Whole Life
+      </button>
+    </nav>
+  </header>
+
+  <!-- Navigation Toolbar Controls -->
+  <div class="absolute bottom-6 left-6 z-10 flex flex-col gap-2 pointer-events-none">
+    <div class="glass-panel p-3 rounded-2xl pointer-events-auto flex items-center gap-3 shadow-xl">
+      <button id="prev-btn" onclick="prevArtwork()" class="glass-button p-2.5 rounded-xl text-amber-200" title="Previous Artwork">
+        <i class="fa-solid fa-chevron-left text-sm"></i>
+      </button>
+      <div class="text-center px-2">
+        <div id="stage-indicator" class="text-xs uppercase tracking-widest text-amber-400 font-semibold">STAGE 01 / 06</div>
+        <div id="artwork-counter" class="text-[11px] text-stone-400">Artwork <span id="current-art-num">1</span> of <span id="artwork-total">11</span></div>
+      </div>
+      <button id="next-btn" onclick="nextArtwork()" class="glass-button p-2.5 rounded-xl text-amber-200" title="Next Artwork">
+        <i class="fa-solid fa-chevron-right text-sm"></i>
+      </button>
+      <div class="h-6 w-[1px] bg-stone-700/60 mx-1"></div>
+      <button onclick="resetCameraView()" class="glass-button px-3 py-2 rounded-xl text-xs text-stone-300 flex items-center gap-1.5" title="Reset Camera View">
+        <i class="fa-solid fa-arrows-to-eye text-amber-400"></i> Reset Focus
+      </button>
+    </div>
+  </div>
+
+  <!-- Audio Controls & Overview Modal Toggle -->
+  <div class="absolute bottom-6 right-6 z-10 flex items-center gap-3 pointer-events-none">
+    <div class="glass-panel p-2 rounded-2xl pointer-events-auto flex items-center gap-2 shadow-xl">
+      <button id="audio-btn" onclick="toggleAudio()" class="glass-button px-3.5 py-2 rounded-xl text-xs font-medium text-stone-300 flex items-center gap-2">
+        <i id="audio-icon" class="fa-solid fa-volume-xmark text-amber-500"></i>
+        <span id="audio-status">Ambient Sound</span>
+      </button>
+      <button onclick="openOverviewModal()" class="glass-button p-2.5 rounded-xl text-stone-300" title="Exhibition Guide">
+        <i class="fa-solid fa-circle-info text-amber-400"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mini-map Floor Indicator -->
+  <div class="absolute top-24 right-6 z-10 hidden md:block pointer-events-none">
+    <div class="glass-panel p-3 rounded-2xl pointer-events-auto w-44">
+      <div class="text-[10px] font-bold text-amber-400 tracking-wider uppercase mb-2 flex justify-between items-center">
+        <span>Gallery Map</span>
+        <i class="fa-solid fa-compass text-amber-500/70"></i>
+      </div>
+      <div class="relative w-full h-28 bg-stone-900/80 rounded-xl border border-stone-800 p-2 flex flex-col justify-between">
+        <div class="flex justify-between items-center text-[9px] text-stone-500">
+          <span id="map-node-0" class="w-3.5 h-3.5 rounded-full border border-stone-600 flex items-center justify-center transition-all">1</span>
+          <span id="map-node-1" class="w-3.5 h-3.5 rounded-full border border-stone-600 flex items-center justify-center transition-all">2</span>
+          <span id="map-node-2" class="w-3.5 h-3.5 rounded-full border border-stone-600 flex items-center justify-center transition-all">3</span>
+        </div>
+        <div class="flex justify-between items-center text-[9px] text-stone-500">
+          <span id="map-node-3" class="w-3.5 h-3.5 rounded-full border border-stone-600 flex items-center justify-center transition-all">4</span>
+          <span id="map-node-4" class="w-3.5 h-3.5 rounded-full border border-stone-600 flex items-center justify-center transition-all">5</span>
+          <span id="map-node-5" class="w-3.5 h-3.5 rounded-full border border-stone-600 flex items-center justify-center transition-all">6</span>
+        </div>
+        <div class="absolute inset-x-3 top-1/2 h-0.5 bg-red-900/40 -z-0 transform -translate-y-1/2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Artwork Detail Modal -->
+  <div id="artwork-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8 bg-black/75 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="glass-panel w-full max-w-4xl max-h-[88vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row border border-stone-700/60 transform scale-95 transition-transform duration-300" id="modal-container">
+      
+      <!-- Modal Canvas Preview Frame -->
+      <div class="w-full md:w-5/12 bg-stone-950 p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-stone-800 relative">
+        <div class="relative w-full aspect-[4/5] rounded-xl overflow-hidden shadow-2xl border-4 border-amber-900/30 flex items-center justify-center bg-stone-900" id="modal-image-wrapper">
+          <canvas id="modal-art-canvas" class="w-full h-full object-contain"></canvas>
+          <div class="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent"></div>
+        </div>
+        <div class="mt-4 text-center">
+          <span id="modal-stage-badge" class="px-3 py-1 rounded-full text-[10px] font-semibold bg-amber-950/80 text-amber-300 border border-amber-800/50 uppercase tracking-wider">
+            Birth (Chul-saeng / Baek-il / Dol)
+          </span>
+        </div>
+      </div>
+
+      <!-- Modal Text Details -->
+      <div class="w-full md:w-7/12 p-6 md:p-8 flex flex-col justify-between overflow-y-auto custom-scroll">
+        <div>
+          <div class="flex justify-between items-start mb-2">
+            <h2 id="modal-title" class="font-serif-kr text-2xl md:text-3xl font-bold text-amber-100 leading-tight">
+              Artwork Title
+            </h2>
+            <button onclick="closeModal()" class="glass-button w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-white shrink-0">
+              <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-amber-400/90 font-medium mb-4">
+            <span id="modal-artist">Artist Name</span> • <span id="modal-period">Joseon Dynasty</span>
+          </div>
+
+          <div class="space-y-4 text-stone-300 text-sm leading-relaxed">
+            <div>
+              <h4 class="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-1">About this work</h4>
+              <p id="modal-description" class="text-stone-300 font-light">
+                Artwork description...
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="pt-6 mt-6 border-t border-stone-800/80 flex items-center justify-between">
+          <div class="text-[11px] text-stone-500">
+            Source: <span id="modal-citation" class="text-stone-400">Artwork documentation</span>
+          </div>
+          <button onclick="closeModal()" class="px-5 py-2 rounded-xl bg-amber-600/80 hover:bg-amber-500 text-stone-900 font-medium text-xs transition-colors shadow-lg shadow-amber-950/50">
+            Continue Exhibition
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Global Overview Exhibition Guide Modal -->
+  <div id="overview-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="glass-panel w-full max-w-2xl p-6 md:p-8 rounded-3xl shadow-2xl border border-stone-700 max-h-[85vh] overflow-y-auto custom-scroll">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="font-serif-kr text-2xl font-bold text-amber-100 flex items-center gap-2">
+          <i class="fa-solid fa-torii-gate text-amber-400"></i> About "INYEON" (인연)
+        </h2>
+        <button onclick="closeOverviewModal()" class="glass-button w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-stone-300 text-sm leading-relaxed font-light">
+        <p>
+          <strong class="text-amber-300 font-medium font-serif-kr">인연 (Inyeon)</strong> represents the invisible red strings of fate, generational love, and social bonds that bind individuals through the continuous cycle of human existence.
+        </p>
+        <p>
+          This interactive 3D exhibition follows the bonds connecting people across birth, adulthood, marriage, old age, death and remembrance.
+        </p>
+
+        <ul class="grid grid-cols-1 md:grid-cols-2 gap-3 my-4 text-xs">
+          <li class="p-3 rounded-xl bg-stone-900/60 border border-stone-800">
+            <span class="text-amber-400 font-semibold block mb-1">01 Birth (Chulsaeng, Baegil, Dol)</span>
+            Birth was guarded by taboos such as the geumjul, a straw rope hung across the gate to keep bad spirits out, by prayers to Samsin Halmeoni, the grandmother spirit of birth, and by celebrations for surviving the fragile first hundred days (baegil) and the first year (dol).
+          </li>
+          <li class="p-3 rounded-xl bg-stone-900/60 border border-stone-800">
+            <span class="text-amber-400 font-semibold block mb-1">02 Coming of Age (Gwallye, Gyerye)</span>
+            Historically held between about 15 and 20, with a cap ceremony for young men and a hairpin ceremony for young women. Today adulthood begins legally at 19.
+          </li>
+          <li class="p-3 rounded-xl bg-stone-900/60 border border-stone-800">
+            <span class="text-amber-400 font-semibold block mb-1">03 Marriage (Honrye)</span>
+            A wedding joined two families, not only two people. The ceremony took place at the bride's home and was followed by pyebaek, the formal bow to the groom's parents.
+          </li>
+          <li class="p-3 rounded-xl bg-stone-900/60 border border-stone-800">
+            <span class="text-amber-400 font-semibold block mb-1">04 Longevity and Turning Sixty (Hoegap, Suyeonrye)</span>
+            Turning sixty completes the sixty year cycle of the zodiac, once treated as a rebirth and a full circle of time. Today the large celebration often waits until 70 or 80.
+          </li>
+          <li class="p-3 rounded-xl bg-stone-900/60 border border-stone-800">
+            <span class="text-amber-400 font-semibold block mb-1">05 Funerals and Ancestral Rites (Sangnye, Jesa)</span>
+            Mourning, burial and the yearly jesa rites keep the bond between the living and the dead from breaking.
+          </li>
+          <li class="p-3 rounded-xl bg-stone-900/60 border border-stone-800">
+            <span class="text-amber-400 font-semibold block mb-1">06 The Whole Life (Pyeongsaengdo)</span>
+            One screen that replays the rooms you have just walked through.
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC -->
+  <script>
+    let container;
+    let scene, camera, renderer, controls;
+    let artworkMeshes = [];
+    let particlesSystem;
+    let currentArtworkIndex = 0;
+    let isTransitioning = false;
+    let audioCtx = null;
+    let isAudioPlaying = false;
+    let audioTimer = null;
+
+    /* =========================================================================
+       1. EXHIBIT DATA
+       ========================================================================= */
+    const EXHIBIT_DATA = [
+      {
+        stageId: 0,
+        stageName: "01 Birth (Chulsaeng, Baegil, Dol)",
+        title: "Samsin Halmeoni (삼신할머니)",
+        artist: "Unknown artist",
+        period: "To confirm • Shamanic painting (musindo)",
+        description: "Before a Korean child could recognise a single face, someone was already watching over it. In folk belief, Samsin Halmeoni, the grandmother spirit of birth, granted children, guarded the delivery and protected the infant, and families set out rice and water for her after a baby arrived. We open with her because the first bond in this exhibition is not between people at all, but between a household and the unseen. Every red string that follows is tied here.",
+        citation: "Artist and details to be confirmed",
+        colorTheme: "#d97706",
+        drawType: "samsin",
+        image: "Samsin Halmeoni.jpg"
+      },
+      {
+        stageId: 0,
+        stageName: "01 Birth (Chulsaeng, Baegil, Dol)",
+        title: "First Birthday Celebration (Doljanchi, 돌잔치), panel from a Pyeongsaengdo screen",
+        artist: "Attributed to Kim Hongdo",
+        period: "Late 18th century • Folding screen panel, ink and colour",
+        description: "Surviving the first year was once uncertain enough that a first birthday brought the whole household together. This scene, a panel attributed to Kim Hongdo from a Pyeongsaengdo screen, gathers parents, relatives and servants around a child at its birthday table. Where Samsin Halmeoni guarded the infant in private, here the community claims the child in public, and the bond widens from one family to its whole circle. The scene also previews our final room, where a complete Pyeongsaengdo screen replays an entire life.",
+        citation: "National Museum of Korea",
+        colorTheme: "#ca8a04",
+        drawType: "doljanchi",
+        image: "Doljanchi.jpeg"
+      },
+      {
+        stageId: 0,
+        stageName: "01 Birth (Chulsaeng, Baegil, Dol)",
+        title: "Girl Carrying a Baby on Her Back (아기 업은 소녀)",
+        artist: "Park Sookeun",
+        period: "1950s to 1960s (confirm version) • Oil painting",
+        description: "In the years after the Korean War, older sisters often raised their younger siblings while mothers went out to work. Park Sookeun painted this scene around ten times, always on the rough, stony surface that became his signature. The girl is still a child herself, yet she carries another life on her back. She bridges our first two rooms. Birth is no longer protected by spirits or celebrated by a crowd, but carried by someone barely older, and care passes sideways between siblings rather than down from parents.",
+        citation: "One version is held by the Park Soo Keun Museum, Yanggu",
+        colorTheme: "#b45309",
+        drawType: "sister_baby",
+        image: "a girl carrying a baby on her back.jpeg"
+      },
+      {
+        stageId: 1,
+        stageName: "02 Coming of Age (Gwallye, Gyerye)",
+        title: "Lovers under the Moon (월하정인), from the album Hyewon pungsokdo",
+        artist: "Shin Yunbok",
+        period: "Late 18th century (possibly 1793) • Ink and colour on paper, 28.2 × 35.6 cm",
+        description: "Coming of age, in this exhibition, means the first bond a person chooses. Shin Yunbok's couple meet beside a wall at midnight under a thin, dimmed moon. His inscription reads, roughly, 'The moon is dim and the night is deep; what is in two hearts, only the two know.' One astronomer has argued that the moon showed a partial lunar eclipse on 21 August 1793. After the duty of the girl with the baby, this is the first time nobody arranged, and it has to stay hidden.",
+        citation: "Gansong Art Museum, Seoul (album designated National Treasure)",
+        colorTheme: "#1e3a8a",
+        drawType: "lovers_moon",
+        image: "Two Lovers Under the Moon.jpg"
+      },
+      {
+        stageId: 2,
+        stageName: "03 Marriage (Honrye)",
+        title: "Flowers and Birds (Hwajodo, 화조도)",
+        artist: "Unknown artist",
+        period: "Joseon dynasty, 19th century (to confirm) • Folk painting (minhwa), ink and colour",
+        description: "Joseon couples rarely showed affection in public, so the bedroom walls did it for them. Flower and bird paintings like this one decorated newlyweds' rooms, and every element is a wish. The birds come in a pair for a faithful marriage, and the pomegranate, split open and full of seeds, asks for many children. After the secret lovers of the previous room, the bond becomes official and is written in code. A Korean marriage joined two families, and this painting speaks for both of them.",
+        citation: "Details to be confirmed",
+        colorTheme: "#15803d",
+        drawType: "hwajodo",
+        image: "Hwajodo.jpeg"
+      },
+      {
+        stageId: 2,
+        stageName: "03 Marriage (Honrye)",
+        title: "Traditional Korean Family Summer",
+        artist: "Jeremy Yong",
+        period: "2015 • Watercolour on hanji",
+        description: "A marriage, in this room, is measured by what grows out of it. Jeremy Yong's painting, made in 2015 on hanji, paper made from mulberry bark, fills a summer valley with an extended family. Children swim in the stream while adults cook and rest beneath a shade cloth. The paired birds of the previous painting were a wish; this is the wish fulfilled, one couple multiplied into a household. Painted long after the folk screens it echoes, it shows that tradition still being practised today.",
+        citation: "Listed on Saatchi Art",
+        colorTheme: "#047857",
+        drawType: "family_summer",
+        image: "Traditional Korean Family Summer.jpg"
+      },
+      {
+        stageId: 3,
+        stageName: "04 Longevity and Turning Sixty (Hoegap, Suyeonrye)",
+        title: "Old Plum (Nomaedo, 노매도)",
+        artist: "Kim Hongdo",
+        period: "1804 • Ink and light colour on paper",
+        description: "The plum is the first tree to flower at the end of winter, which made it an emblem of old age that still blossoms. Kim Hongdo painted this when he was about sixty and dated it the winter of gapja, 1804, the year that restarts the sixty year cycle of the zodiac. The trunk is twisted and split, yet the branches are covered in buds. Here the exhibition slows down, and the crowded family scenes give way to a single, ageing life that keeps flowering.",
+        citation: "Private collection; shown in Danwon Kim Hongdo, National Museum of Korea, May to August 2026",
+        colorTheme: "#854d0e",
+        drawType: "plum_blossoms",
+        image: "Old Plum Blossom.jpeg"
+      },
+      {
+        stageId: 4,
+        stageName: "05 Funerals and Ancestral Rites (Sangnye, Jesa)",
+        title: "Where, in What Form, Shall We Meet Again (어디서 무엇이 되어 다시 만나랴)",
+        artist: "Kim Whanki",
+        period: "1970 • Oil on cotton",
+        description: "Kim Whanki made this in New York, far from home, filling the canvas with thousands of blue dots that are often read as the faces and landscapes he missed. The title is the last line of “In the Evening,” a poem by his friend Kim Kwangseop, in which a person and a star gaze at each other before one fades into darkness and the other into light. It won the grand prize at the first Hankook Ilbo art competition in 1970. We enter the room on death with a question rather than a grave.",
+        citation: "Whanki Foundation, Whanki Museum, Seoul",
+        colorTheme: "#1d4ed8",
+        drawType: "whanki_dots",
+        image: "Where, in What Form, Shall We Meet Again.jpg"
+      },
+      {
+        stageId: 4,
+        stageName: "05 Funerals and Ancestral Rites (Sangnye, Jesa)",
+        title: "The Civilian Victims from Gyeongsan Cobalt Mine",
+        artist: "Jeon Seung-il",
+        period: "2016 • Illustration, published online",
+        description: "Not every Korean life ended surrounded by mourners. In the summer of 1950, early in the Korean War, South Korean soldiers and police executed thousands of civilians, many of them prisoners and Bodo League members, at an abandoned cobalt mine in Gyeongsan and left the bodies in its shafts. Jeon Seung-il lines up the excavated skulls and lays one white chrysanthemum, Korea's funeral flower, before them. After Kim Whanki's hope of meeting again, this is the threshold crossed alone, with the flower standing in for families denied their rites.",
+        citation: "Published online",
+        colorTheme: "#dc2626",
+        drawType: "cobalt_mine",
+        image: "The Civilian Victims from Gyeongsan Cobalt Mine.jpeg"
+      },
+      {
+        stageId: 4,
+        stageName: "05 Funerals and Ancestral Rites (Sangnye, Jesa)",
+        title: "Ancestral Shrine Painting (Gammojae-do, 감모여재도)",
+        artist: "Unidentified artist",
+        period: "19th century • Ink and colour on paper",
+        description: "Its name means, roughly, longing for them as if they were here. When a family had no ancestral shrine, or performed the rites far from home, they hung a painting of one instead, showing the shrine hall and an offering table so that jesa could be held anywhere. It answers the previous room. The cobalt mine victims went without rites, while this painting shows how far Koreans went to make sure no ancestor did. The bond with the dead becomes portable, kept up by the living year after year.",
+        citation: "The Metropolitan Museum of Art, New York (2022.267.1), gift of the children of Lea R. Sneider, 2022",
+        colorTheme: "#78350f",
+        drawType: "ancestral_shrine",
+        image: "Ancesteral Shrine.jpg"
+      },
+      {
+        stageId: 5,
+        stageName: "06 The Whole Life (Pyeongsaengdo)",
+        title: "Scenes from the Cycle of Life (Pyeongsaengdo, 평생도)",
+        artist: "Unidentified artist",
+        period: "Late Joseon dynasty • Ten panel folding screen",
+        description: "We end where we began, with a first birthday, now the opening panel of ten. Read from right to left, this screen follows one ideal life through the state exam, a wedding and an official career to a sixtieth wedding anniversary. Most of the thresholds you have just walked through appear again, compressed into one object made to stand in a family home, and every scene is crowded with relatives, colleagues and onlookers. The screen closes the circle and hands the red string of inyeon to the next generation.",
+        citation: "The Metropolitan Museum of Art, New York",
+        colorTheme: "#ca8a04",
+        drawType: "pyeongsaengdo",
+        image: "pyeongsaengdo.jpeg"
+      }
+    ];
+
+    function loadArtworkDimensions(item) {
+      if (!item.image) {
+        return Promise.resolve({ width: 1024, height: 1280 });
+      }
+
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
+        img.onerror = () => resolve({ width: 1024, height: 1280 });
+        img.src = encodeURI(item.image);
+      });
+    }
+
+    /* =========================================================================
+       2. CANVAS TEXTURE GENERATOR FOR ARTWORKS
+       ========================================================================= */
+    function generateArtworkTexture(item, imageInfo = { width: 1024, height: 1280 }) {
+      const canvas = document.createElement('canvas');
+      canvas.width = imageInfo.width || 1024;
+      canvas.height = imageInfo.height || 1280;
+      const ctx = canvas.getContext('2d');
+
+      const applyArtworkBorder = () => {
+        ctx.strokeStyle = '#d4af37';
+        ctx.lineWidth = 18;
+        ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+      };
+
+      const drawFallbackArtwork = () => {
+        switch (item.drawType) {
+          case 'samsin':
+            drawSamsinHalmeoni(ctx);
+            break;
+          case 'doljanchi':
+            drawDoljanchi(ctx);
+            break;
+          case 'sister_baby':
+            drawSisterBaby(ctx);
+            break;
+          case 'lovers_moon':
+            drawLoversUnderMoon(ctx);
+            break;
+          case 'hwajodo':
+            drawHwajodo(ctx);
+            break;
+          case 'family_summer':
+            drawFamilySummer(ctx);
+            break;
+          case 'plum_blossoms':
+            drawPlumBlossoms(ctx);
+            break;
+          case 'grandfather':
+            drawGrandfather(ctx);
+            break;
+          case 'whanki_dots':
+            drawWhankiDots(ctx);
+            break;
+          case 'butterflies':
+            drawButterflies(ctx);
+            break;
+          case 'cobalt_mine':
+            drawCobaltMine(ctx);
+            break;
+          case 'ancestral_shrine':
+            drawAncestralShrine(ctx);
+            break;
+          case 'pyeongsaengdo':
+            drawPyeongsaengdoScreen(ctx);
+            break;
+          default:
+            drawDefaultTraditional(ctx, item.title);
+        }
+      };
+
+      const texture = new THREE.CanvasTexture(canvas);
+
+      if (item.image) {
+        const image = new Image();
+        image.onload = () => {
+          const scale = Math.max(canvas.width / image.width, canvas.height / image.height);
+          const width = image.width * scale;
+          const height = image.height * scale;
+          const x = (canvas.width - width) / 2;
+          const y = (canvas.height - height) / 2;
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = '#0f0f10';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(image, x, y, width, height);
+          applyArtworkBorder();
+          texture.needsUpdate = true;
+        };
+        image.onerror = () => {
+          drawFallbackArtwork();
+          applyArtworkBorder();
+          texture.needsUpdate = true;
+        };
+        image.src = encodeURI(item.image);
+      } else {
+        drawFallbackArtwork();
+        applyArtworkBorder();
+        texture.needsUpdate = true;
+      }
+
+      return {
+        texture,
+        canvas,
+        aspect: canvas.width / canvas.height
+      };
+    }
+
+    /* =========================================================================
+       2. CANVAS TEXTURE GENERATOR FOR ARTWORKS
+       ========================================================================= */
+    function generateArtworkTextureLegacy(item) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024;
+      canvas.height = 1280;
+      const ctx = canvas.getContext('2d');
+
+      const drawFallbackArtwork = () => {
+        switch (item.drawType) {
+          case 'samsin':
+            drawSamsinHalmeoni(ctx);
+            break;
+          case 'doljanchi':
+            drawDoljanchi(ctx);
+            break;
+          case 'sister_baby':
+            drawSisterBaby(ctx);
+            break;
+          case 'lovers_moon':
+            drawLoversUnderMoon(ctx);
+            break;
+          case 'hwajodo':
+            drawHwajodo(ctx);
+            break;
+          case 'family_summer':
+            drawFamilySummer(ctx);
+            break;
+          case 'plum_blossoms':
+            drawPlumBlossoms(ctx);
+            break;
+          case 'grandfather':
+            drawGrandfather(ctx);
+            break;
+          case 'whanki_dots':
+            drawWhankiDots(ctx);
+            break;
+          case 'butterflies':
+            drawButterflies(ctx);
+            break;
+          case 'cobalt_mine':
+            drawCobaltMine(ctx);
+            break;
+          case 'ancestral_shrine':
+            drawAncestralShrine(ctx);
+            break;
+          case 'pyeongsaengdo':
+            drawPyeongsaengdoScreen(ctx);
+            break;
+          default:
+            drawDefaultTraditional(ctx, item.title);
+        }
+      };
+
+      if (item.image) {
+        const image = new Image();
+        image.onload = () => {
+          const scale = Math.max(canvas.width / image.width, canvas.height / image.height);
+          const width = image.width * scale;
+          const height = image.height * scale;
+          const dx = (canvas.width - width) / 2;
+          const dy = (canvas.height - height) / 2;
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = '#0f0f10';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(image, dx, dy, width, height);
+          ctx.strokeStyle = '#d4af37';
+          ctx.lineWidth = 18;
+          ctx.strokeRect(20, 20, 984, 1240);
+        };
+        image.onerror = () => {
+          drawFallbackArtwork();
+          ctx.strokeStyle = '#d4af37';
+          ctx.lineWidth = 18;
+          ctx.strokeRect(20, 20, 984, 1240);
+        };
+        image.src = encodeURI(item.image);
+      } else {
+        drawFallbackArtwork();
+      }
+
+      ctx.strokeStyle = '#d4af37';
+      ctx.lineWidth = 18;
+      ctx.strokeRect(20, 20, 984, 1240);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+
+      return { texture, canvas };
+    }
+
+    function drawSamsinHalmeoni(ctx) {
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillRect(0, 0, 1024, 1280);
+
+      for (let i = 0; i < 3; i++) {
+        const cx = 250 + i * 260;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(cx, 280);
+        ctx.lineTo(cx - 85, 480);
+        ctx.lineTo(cx + 85, 480);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = i === 1 ? '#dc2626' : '#d97706';
+        ctx.fillRect(cx - 75, 480, 150, 360);
+      }
+
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 16;
+      ctx.beginPath();
+      ctx.moveTo(0, 140);
+      ctx.quadraticCurveTo(512, 240, 1024, 140);
+      ctx.stroke();
+    }
+
+    function drawSisterBaby(ctx) {
+      // Park Soo-keun Impasto Granite Texture
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(0, 0, 1024, 1280);
+
+      for (let i = 0; i < 6000; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? '#a16207' : '#451a03';
+        ctx.fillRect(Math.random() * 1024, Math.random() * 1280, 8, 8);
+      }
+
+      // Sister holding baby on back
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(432, 380, 160, 520);
+      ctx.fillStyle = '#fef3c7';
+      ctx.beginPath();
+      ctx.arc(512, 320, 75, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Baby sleeping head on back
+      ctx.fillStyle = '#fde68a';
+      ctx.beginPath();
+      ctx.arc(420, 420, 55, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawDoljanchi(ctx) {
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillRect(0, 0, 1024, 1280);
+
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(212, 680, 600, 160);
+
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.arc(320, 650, 32, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#2563eb';
+      ctx.fillRect(450, 630, 80, 40);
+
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.arc(620, 650, 28, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawLoversUnderMoon(ctx) {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, 1024, 1280);
+
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.arc(350, 220, 70, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.arc(380, 200, 65, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(100, 650, 824, 450);
+
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.ellipse(650, 500, 90, 15, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(610, 520, 80, 260);
+
+      ctx.fillStyle = '#0d9488';
+      ctx.beginPath();
+      ctx.ellipse(480, 620, 80, 180, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawHwajodo(ctx) {
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillRect(0, 0, 1024, 1280);
+
+      ctx.strokeStyle = '#451a03';
+      ctx.lineWidth = 24;
+      ctx.beginPath();
+      ctx.moveTo(100, 900);
+      ctx.bezierCurveTo(400, 800, 300, 300, 800, 250);
+      ctx.stroke();
+
+      [{ x: 480, y: 420 }, { x: 580, y: 380 }].forEach(p => {
+        ctx.fillStyle = '#2563eb';
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, 40, 25, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(p.x + 30, p.y - 15, 18, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.fillStyle = '#f43f5e';
+      for (let i = 0; i < 20; i++) {
+        ctx.beginPath();
+        ctx.arc(200 + Math.random() * 600, 200 + Math.random() * 600, 25, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawFamilySummer(ctx) {
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(0, 800, 1024, 480);
+
+      ctx.fillStyle = '#15803d';
+      ctx.beginPath();
+      ctx.moveTo(0, 800);
+      ctx.lineTo(512, 300);
+      ctx.lineTo(1024, 800);
+      ctx.fill();
+    }
+
+    function drawPlumBlossoms(ctx) {
+      ctx.fillStyle = '#fafaf9';
+      ctx.fillRect(0, 0, 1024, 1280);
+
+      ctx.strokeStyle = '#27272a';
+      ctx.lineWidth = 36;
+      ctx.beginPath();
+      ctx.moveTo(512, 1100);
+      ctx.quadraticCurveTo(200, 700, 500, 400);
+      ctx.quadraticCurveTo(800, 200, 400, 100);
+      ctx.stroke();
+
+      for (let i = 0; i < 70; i++) {
+        ctx.fillStyle = i % 3 === 0 ? '#fef08a' : '#ffffff';
+        ctx.beginPath();
+        const rx = 200 + Math.random() * 600;
+        const ry = 100 + Math.random() * 800;
+        ctx.arc(rx, ry, 14, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawGrandfather(ctx) {
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(0, 0, 1024, 1280);
+      ctx.fillStyle = '#fef3c7';
+      ctx.font = '30px "Noto Serif KR"';
+      ctx.fillText('Grandfather & Child', 360, 640);
+    }
+
+    function drawWhankiDots(ctx) {
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(0, 0, 1024, 1280);
+
+      ctx.strokeStyle = '#1d4ed8';
+      ctx.lineWidth = 1.5;
+
+      for (let y = 80; y < 1200; y += 28) {
+        for (let x = 80; x < 944; x += 28) {
+          const alpha = Math.random() * 0.7 + 0.3;
+          ctx.fillStyle = `rgba(147, 197, 253, ${alpha})`;
+          ctx.fillRect(x, y, 20, 20);
+          ctx.strokeRect(x - 2, y - 2, 24, 24);
+        }
+      }
+    }
+
+    function drawButterflies(ctx) {
+      ctx.fillStyle = '#fafaf9';
+      ctx.fillRect(0, 0, 1024, 1280);
+
+      ctx.fillStyle = '#a855f7';
+      ctx.beginPath();
+      ctx.arc(512, 700, 180, 0, Math.PI * 2);
+      ctx.fill();
+
+      for (let i = 0; i < 9; i++) {
+        ctx.fillStyle = '#f97316';
+        const bx = 250 + Math.random() * 500;
+        const by = 250 + Math.random() * 600;
+        ctx.beginPath();
+        ctx.ellipse(bx, by, 35, 20, Math.random(), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawCobaltMine(ctx) {
+      ctx.fillStyle = '#450a0a';
+      ctx.fillRect(0, 0, 1024, 1280);
+
+      ctx.fillStyle = '#991b1b';
+      ctx.fillRect(100, 200, 824, 700);
+
+      ctx.fillStyle = '#ffffff';
+      for (let a = 0; a < Math.PI * 2; a += 0.3) {
+        ctx.beginPath();
+        ctx.ellipse(512 + Math.cos(a) * 60, 1000 + Math.sin(a) * 60, 40, 12, a, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.arc(512, 1000, 25, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawAncestralShrine(ctx) {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, 1024, 1280);
+
+      ctx.fillStyle = '#1c1917';
+      ctx.fillRect(150, 250, 724, 800);
+
+      ctx.fillStyle = '#9a3412';
+      ctx.beginPath();
+      ctx.moveTo(100, 350);
+      ctx.lineTo(512, 180);
+      ctx.lineTo(924, 350);
+      ctx.fill();
+
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(250, 850, 524, 120);
+
+      ctx.fillStyle = '#fef08a';
+      ctx.font = 'bold 36px "Noto Serif KR"';
+      ctx.fillText('感慕在如 (Gam-Mo-Jae-Yeo)', 280, 280);
+    }
+
+    function drawPyeongsaengdoScreen(ctx) {
+      ctx.fillStyle = '#0a0a0c';
+      ctx.fillRect(0, 0, 1024, 1280);
+
+      for (let i = 0; i < 10; i++) {
+        const x = 52 + i * 92;
+        ctx.fillStyle = i % 2 === 0 ? '#fef3c7' : '#fde68a';
+        ctx.fillRect(x, 100, 84, 1080);
+
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(x, 100, 84, 1080);
+      }
+    }
+
+    function drawDefaultTraditional(ctx, title) {
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillRect(0, 0, 1024, 1280);
+      ctx.fillStyle = '#451a03';
+      ctx.font = 'bold 32px "Noto Serif KR"';
+      ctx.fillText(title, 180, 640);
+    }
+
+    /* =========================================================================
+       3. THREE.JS 3D ENVIRONMENT INITIALIZATION
+       ========================================================================= */
+    function init3DGallery() {
+      container = document.getElementById('canvas-container');
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a0a0c);
+      scene.fog = new THREE.FogExp2(0x0a0a0c, 0.025);
+
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 2.2, 12);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.1;
+      container.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.maxPolarAngle = Math.PI / 2 - 0.02;
+      controls.minDistance = 2;
+      controls.maxDistance = 25;
+      controls.target.set(0, 2, 0);
+
+      setupLighting();
+      buildGalleryArchitecture();
+      spawnArtworks();
+      createInyeonParticles();
+
+      window.addEventListener('resize', onWindowResize);
+      renderer.domElement.addEventListener('click', onCanvasClick);
+
+      animate();
+    }
+
+    function setupLighting() {
+      const ambientLight = new THREE.AmbientLight(0xfff7ed, 0.6);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffedd5, 0.8);
+      dirLight.position.set(10, 20, 15);
+      dirLight.castShadow = true;
+      scene.add(dirLight);
+    }
+
+    function buildGalleryArchitecture() {
+      const floorGeo = new THREE.PlaneGeometry(60, 60);
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x120d0a, roughness: 0.2, metalness: 0.1 });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.8 });
+      const radius = 18;
+
+      for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * Math.PI * 2;
+        const wallWidth = 2 * radius * Math.sin(Math.PI / 6);
+        const wallGeo = new THREE.BoxGeometry(wallWidth, 8, 0.4);
+        const wall = new THREE.Mesh(wallGeo, wallMat);
+
+        const midAngle = angle + Math.PI / 6;
+        wall.position.x = Math.sin(midAngle) * radius;
+        wall.position.z = Math.cos(midAngle) * radius;
+        wall.position.y = 4;
+        wall.rotation.y = midAngle + Math.PI;
+        wall.receiveShadow = true;
+        scene.add(wall);
+
+        const pillarGeo = new THREE.CylinderGeometry(0.3, 0.3, 8, 16);
+        const pillarMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.5 });
+        const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+        pillar.position.x = Math.sin(angle) * radius;
+        pillar.position.z = Math.cos(angle) * radius;
+        pillar.position.y = 4;
+        scene.add(pillar);
+      }
+    }
+
+    async function spawnArtworks() {
+      const radius = 17.6;
+      let samsinFrameHeight = null;
+      document.getElementById('artwork-total').innerText = `${EXHIBIT_DATA.length}`;
+
+      for (let index = 0; index < EXHIBIT_DATA.length; index++) {
+        const item = EXHIBIT_DATA[index];
+        const sectionIdx = item.stageId;
+        const itemsInStage = EXHIBIT_DATA.filter(e => e.stageId === sectionIdx);
+        const subIndex = itemsInStage.indexOf(item);
+        const count = itemsInStage.length;
+
+        const baseAngle = (sectionIdx / 6) * Math.PI * 2 + Math.PI / 6;
+        const offsetAngle = (subIndex - (count - 1) / 2) * 0.22;
+        const angle = baseAngle + offsetAngle;
+
+        const posX = Math.sin(angle) * radius;
+        const posZ = Math.cos(angle) * radius;
+
+        const imageInfo = await loadArtworkDimensions(item);
+        const { texture, canvas, aspect } = generateArtworkTexture(item, imageInfo);
+        item.generatedCanvas = canvas;
+
+        const frameWidth = aspect >= 1 ? 2.9 : 2.2;
+        const frameHeight = frameWidth / aspect;
+        const naturalHeight = Math.min(4.8, Math.max(2.1, frameHeight));
+        const boundedHeight = item.drawType === 'sister_baby' && samsinFrameHeight !== null
+          ? samsinFrameHeight
+          : naturalHeight;
+        const boundedWidth = boundedHeight * aspect;
+        if (item.drawType === 'samsin') samsinFrameHeight = boundedHeight;
+
+        const frameScale = item.drawType === 'plum_blossoms' || item.drawType === 'lovers_moon' ? 1.5 : 1;
+        const frameGeo = new THREE.BoxGeometry(boundedWidth * frameScale, boundedHeight * frameScale, 0.12);
+        const frameMatFront = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.3, side: THREE.DoubleSide });
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x271c19, roughness: 0.6 });
+
+        const materials = [woodMat, woodMat, woodMat, woodMat, frameMatFront, woodMat];
+        const mesh = new THREE.Mesh(frameGeo, materials);
+
+        mesh.position.set(posX, 2.6, posZ);
+        mesh.rotation.y = angle + Math.PI;
+        mesh.castShadow = true;
+        mesh.userData = { artworkIndex: index, data: item };
+
+        scene.add(mesh);
+        artworkMeshes.push(mesh);
+
+        const spotLight = new THREE.SpotLight(0xffedd5, 2.5, 12, Math.PI / 5, 0.4);
+        spotLight.position.set(posX * 0.8, 6, posZ * 0.8);
+        spotLight.target = mesh;
+        scene.add(spotLight);
+      }
+    }
+
+    function createInyeonParticles() {
+      const particleCount = 200;
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+
+      for (let i = 0; i < particleCount * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 35;
+        positions[i + 1] = Math.random() * 7 + 0.5;
+        positions[i + 2] = (Math.random() - 0.5) * 35;
+
+        colors[i] = 0.9;
+        colors[i + 1] = 0.2 + Math.random() * 0.3;
+        colors[i + 2] = 0.1;
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const material = new THREE.PointsMaterial({
+        size: 0.12,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.6,
+        blending: THREE.AdditiveBlending
+      });
+
+      particlesSystem = new THREE.Points(geometry, material);
+      scene.add(particlesSystem);
+    }
+
+    /* =========================================================================
+       4. INTERACTION LOGIC
+       ========================================================================= */
+    function focusOnArtwork(index, animateCamera = true) {
+      if (index < 0 || index >= artworkMeshes.length) return;
+      currentArtworkIndex = index;
+      const targetMesh = artworkMeshes[index];
+      const data = targetMesh.userData.data;
+
+      document.querySelectorAll('nav button').forEach((btn, idx) => {
+        btn.classList.toggle('active', idx === data.stageId);
+      });
+
+      document.getElementById('stage-indicator').innerText = `STAGE 0${data.stageId + 1} / 06`;
+      document.getElementById('current-art-num').innerText = `${index + 1}`;
+      document.getElementById('artwork-total').innerText = `${artworkMeshes.length}`;
+
+      for (let i = 0; i < 6; i++) {
+        const node = document.getElementById(`map-node-${i}`);
+        if (node) {
+          if (i === data.stageId) {
+            node.className = "w-4 h-4 rounded-full bg-amber-500 text-black font-bold flex items-center justify-center text-[10px] shadow-[0_0_10px_#f59e0b]";
+          } else {
+            node.className = "w-3.5 h-3.5 rounded-full border border-stone-600 flex items-center justify-center transition-all text-stone-500";
+          }
+        }
+      }
+
+      if (animateCamera) {
+        isTransitioning = true;
+        const outwardNormal = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), targetMesh.rotation.y);
+        const offset = outwardNormal.clone().multiplyScalar(3.4);
+        const camTargetPos = targetMesh.position.clone().add(offset);
+        camTargetPos.y = 2.6;
+
+        gsap.to(camera.position, {
+          x: camTargetPos.x,
+          y: camTargetPos.y,
+          z: camTargetPos.z,
+          duration: 1.8,
+          ease: "power2.inOut",
+          onUpdate: () => controls.update(),
+          onComplete: () => { isTransitioning = false; }
+        });
+
+        gsap.to(controls.target, {
+          x: targetMesh.position.x,
+          y: targetMesh.position.y,
+          z: targetMesh.position.z,
+          duration: 1.8,
+          ease: "power2.inOut"
+        });
+      }
+    }
+
+    function navigateToSection(stageId) {
+      const firstArtIndex = EXHIBIT_DATA.findIndex(item => item.stageId === stageId);
+      if (firstArtIndex !== -1) {
+        focusOnArtwork(firstArtIndex);
+      }
+    }
+
+    function nextArtwork() {
+      const nextIdx = (currentArtworkIndex + 1) % artworkMeshes.length;
+      focusOnArtwork(nextIdx);
+    }
+
+    function prevArtwork() {
+      const prevIdx = (currentArtworkIndex - 1 + artworkMeshes.length) % artworkMeshes.length;
+      focusOnArtwork(prevIdx);
+    }
+
+    function resetCameraView() {
+      gsap.to(camera.position, { x: 0, y: 2.2, z: 12, duration: 1.5, ease: "power2.inOut" });
+      gsap.to(controls.target, { x: 0, y: 2, z: 0, duration: 1.5, ease: "power2.inOut" });
+    }
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function onCanvasClick(event) {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(artworkMeshes);
+
+      if (intersects.length > 0) {
+        const clickedMesh = intersects[0].object;
+        const index = clickedMesh.userData.artworkIndex;
+        focusOnArtwork(index);
+        openModal(clickedMesh.userData.data);
+      }
+    }
+
+    function openModal(data) {
+      document.getElementById('modal-title').innerText = data.title;
+      document.getElementById('modal-artist').innerText = data.artist;
+      document.getElementById('modal-period').innerText = data.period;
+      document.getElementById('modal-description').innerText = data.description;
+      document.getElementById('modal-citation').innerText = data.citation;
+      document.getElementById('modal-stage-badge').innerText = data.stageName;
+
+      const modalCanvas = document.getElementById('modal-art-canvas');
+      const ctx = modalCanvas.getContext('2d');
+      modalCanvas.width = data.generatedCanvas.width;
+      modalCanvas.height = data.generatedCanvas.height;
+      ctx.drawImage(data.generatedCanvas, 0, 0);
+
+      const modal = document.getElementById('artwork-modal');
+      const containerModal = document.getElementById('modal-container');
+      modal.classList.remove('pointer-events-none', 'opacity-0');
+      modal.classList.add('opacity-100');
+      containerModal.classList.remove('scale-95');
+      containerModal.classList.add('scale-100');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('artwork-modal');
+      const containerModal = document.getElementById('modal-container');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      modal.classList.remove('opacity-100');
+      containerModal.classList.add('scale-95');
+      containerModal.classList.remove('scale-100');
+    }
+
+    function openOverviewModal() {
+      const modal = document.getElementById('overview-modal');
+      modal.classList.remove('pointer-events-none', 'opacity-0');
+      modal.classList.add('opacity-100');
+    }
+
+    function closeOverviewModal() {
+      const modal = document.getElementById('overview-modal');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      modal.classList.remove('opacity-100');
+    }
+
+    /* =========================================================================
+       5. AUDIO SYNTHESIZER
+       ========================================================================= */
+    function toggleAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      if (isAudioPlaying) {
+        isAudioPlaying = false;
+        clearInterval(audioTimer);
+        document.getElementById('audio-icon').className = 'fa-solid fa-volume-xmark text-amber-500';
+        document.getElementById('audio-status').innerText = 'Ambient Off';
+      } else {
+        isAudioPlaying = true;
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        document.getElementById('audio-icon').className = 'fa-solid fa-volume-high text-amber-400 animate-pulse';
+        document.getElementById('audio-status').innerText = 'Gayageum Chime';
+        playGayageumNote();
+        audioTimer = setInterval(playGayageumNote, 2400);
+      }
+    }
+
+    function playGayageumNote() {
+      if (!isAudioPlaying || !audioCtx) return;
+
+      const scale = [155.56, 174.61, 196.00, 233.08, 261.63, 311.13, 349.23, 392.00, 466.16];
+      const freq = scale[Math.floor(Math.random() * scale.length)];
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+      gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 2.2);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 2.3);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (particlesSystem) {
+        particlesSystem.rotation.y += 0.0006;
+      }
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.onload = () => {
+      init3DGallery();
+      openOverviewModal();
+      setTimeout(() => focusOnArtwork(0, true), 200);
+    };
+  </script>
+</body>
+</html>
